@@ -1,13 +1,715 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sistema de Diagnóstico Tributário IR2026 — BVianna Consulting</title>
-    <meta name="description" content="Coleta técnica para elaboração segura, econômica e fiscalmente consistente da Declaração de Imposto de Renda." />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico Tributário IR2026 — BVianna Consulting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0b0d;--surface:#111318;--surfaceHi:#181c24;
+  --border:#1e2330;--borderHi:#2a3045;
+  --text:#e8eaf0;--muted:#6b7280;--dim:#3d4454;
+  --accent:#3b7ff0;--accentDim:#1d3d7a;
+  --gold:#c9a84c;--goldDim:#6b521e;
+  --danger:#ef4444;--warn:#f59e0b;--success:#22c55e;
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:400;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--borderHi);border-radius:2px}
+input,textarea,select{font-family:'DM Sans',sans-serif;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 15px;color:var(--text);font-size:14px;outline:none;width:100%;transition:border-color .2s}
+input:focus,textarea:focus,select:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:90px}
+::selection{background:var(--accentDim);color:var(--text)}
+
+/* LAYOUT */
+#app{display:flex;min-height:100vh}
+#sidebar{width:250px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:10}
+#main{margin-left:250px;flex:1;display:flex;flex-direction:column}
+#progress-bar{height:2px;background:var(--border)}
+#progress-fill{height:100%;background:var(--accent);transition:width .5s ease;box-shadow:0 0 8px #3b7ff066}
+#header{padding:16px 36px;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+#content{flex:1;padding:40px 36px;overflow-y:auto;max-width:720px}
+#footer{padding:18px 36px;border-top:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between}
+
+/* SIDEBAR */
+.sb-logo{padding:22px 18px 18px;border-bottom:1px solid var(--border)}
+.sb-logo-name{font-family:'DM Serif Display',serif;font-size:14px;color:var(--text)}
+.sb-logo-sub{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.sb-score{padding:14px 18px;border-bottom:1px solid var(--border)}
+.sb-score-label{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.sb-steps{padding:14px 10px;flex:1}
+.sb-step{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;margin-bottom:2px;border:1px solid transparent;transition:all .2s;cursor:default}
+.sb-step.active{background:#1d3d7a44;border-color:var(--accentDim)}
+.sb-step-num{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--surfaceHi);color:var(--dim);border:1px solid var(--border);transition:all .2s}
+.sb-step.active .sb-step-num{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sb-step.done .sb-step-num{background:#22c55e22;color:var(--success);border-color:#22c55e55}
+.sb-step-label{font-size:12px;color:var(--dim);transition:color .2s}
+.sb-step.active .sb-step-label{color:var(--text);font-weight:500}
+.sb-step.done .sb-step-label{color:var(--muted)}
+.sb-footer{padding:14px 18px;border-top:1px solid var(--border)}
+.sb-footer-txt{font-size:10px;color:var(--dim);letter-spacing:.05em;line-height:1.6}
+
+/* CARDS */
+.card{background:var(--surfaceHi);border:1px solid var(--border);border-radius:14px;padding:26px;margin-bottom:18px}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.field label .req{color:var(--accent);margin-left:3px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.field-row{grid-template-columns:1fr}#sidebar{display:none}#main{margin-left:0}#content{padding:24px 18px}}
+
+/* TOGGLES */
+.toggle-group{display:flex;flex-direction:column;gap:8px}
+.toggle-opt{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s;user-select:none}
+.toggle-opt:hover{border-color:var(--borderHi)}
+.toggle-opt.active{background:#1d3d7a33;border-color:var(--accent)}
+.toggle-dot{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--borderHi);background:transparent;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.toggle-opt.active .toggle-dot{border-color:var(--accent);background:var(--accent)}
+.toggle-dot::after{content:'';display:block;width:7px;height:7px;border-radius:50%;background:#fff;opacity:0;transition:opacity .2s}
+.toggle-opt.active .toggle-dot::after{opacity:1}
+.toggle-main{font-size:14px;color:var(--muted);transition:color .2s}
+.toggle-opt.active .toggle-main{color:var(--text)}
+.toggle-sub{font-size:12px;color:var(--dim);margin-top:2px}
+
+/* COND BLOCK */
+.cond{border-left:2px solid var(--accent);padding-left:16px;margin-top:12px;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ALERTS */
+.alert{padding:12px 15px;border-radius:8px;font-size:13px;margin:8px 0 14px;display:flex;gap:9px;align-items:flex-start;line-height:1.6}
+.alert-info{background:#1d3d7a22;border:1px solid #1d3d7a88;color:#93bcf5}
+.alert-warn{background:#f59e0b15;border:1px solid #f59e0b44;color:#fbbf24}
+.alert-danger{background:#ef444415;border:1px solid #ef444444;color:#f87171}
+.alert-success{background:#22c55e15;border:1px solid #22c55e44;color:#4ade80}
+
+/* UPLOAD ZONE */
+.upload-zone{border:1.5px dashed var(--borderHi);border-radius:10px;padding:26px 18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface)}
+.upload-zone:hover{border-color:var(--accent);background:#1d3d7a15}
+.upload-zone.uploaded{border-color:var(--success);background:#22c55e11}
+.upload-zone .uz-icon{font-size:20px;margin-bottom:8px;color:var(--muted)}
+.upload-zone.uploaded .uz-icon{color:var(--success)}
+.upload-zone .uz-label{font-size:13px;color:var(--text);font-weight:500}
+.upload-zone .uz-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.upload-zone .uz-badge{font-size:10px;color:var(--success);margin-top:6px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:480px){.upload-grid{grid-template-columns:1fr}}
+
+/* BUTTONS */
+.btn-primary{padding:11px 26px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;letter-spacing:.03em}
+.btn-primary:hover{opacity:.88}
+.btn-primary:disabled{background:var(--surfaceHi);color:var(--dim);cursor:not-allowed;opacity:1}
+.btn-secondary{padding:10px 22px;background:transparent;border:1px solid var(--border);border-radius:9px;color:var(--muted);font-size:13px;cursor:pointer;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--borderHi)}
+.btn-gold{padding:11px 26px;background:var(--gold);color:#000;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn-gold:hover{opacity:.88}
+
+/* SCORE */
+.score-ring{position:relative;flex-shrink:0}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .score-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:500}
+
+/* RESULT */
+.result-item{display:flex;align-items:center;gap:10px;padding:9px 13px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:7px}
+.result-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.result-key{font-size:11px;color:var(--muted);letter-spacing:.04em;min-width:180px}
+.result-val{font-size:13px;color:var(--text);font-weight:500}
+.chip{display:inline-block;font-size:11px;padding:3px 10px;border-radius:20px;margin:3px;font-weight:500}
+.chip-ok{background:#22c55e22;color:var(--success);border:1px solid #22c55e44}
+.chip-warn{background:#f59e0b22;color:#fbbf24;border:1px solid #f59e0b44}
+.chip-danger{background:#ef444422;color:#f87171;border:1px solid #ef444444}
+
+/* STEP 1 WELCOME */
+.welcome-badge{display:inline-flex;align-items:center;gap:8px;background:#1d3d7a55;border:1px solid var(--accentDim);border-radius:20px;padding:4px 14px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;font-weight:500}
+.welcome-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:20px 0 22px}
+.welcome-feat{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:13px 15px}
+.welcome-feat-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.welcome-feat-sub{font-size:11px;color:var(--muted)}
+
+/* HEADER */
+.hdr-step{font-size:11px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.hdr-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--text);margin-top:2px}
+.hdr-badge{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--dim);background:var(--surfaceHi);padding:4px 10px;border-radius:4px}
+
+/* SAVE INDICATOR */
+.save-ind{font-size:11px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-name">BVianna Consulting</div>
+      <div class="sb-logo-sub">Diagnóstico IR 2026</div>
+    </div>
+    <div class="sb-score" id="sb-score-wrap" style="display:none">
+      <div class="sb-score-label">Índice de risco fiscal</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="score-ring" style="width:56px;height:56px">
+          <svg width="56" height="56">
+            <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" stroke-width="4"/>
+            <circle id="sb-ring" cx="28" cy="28" r="22" fill="none" stroke="var(--success)" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2" style="transition:all .8s ease"/>
+          </svg>
+          <div class="score-val" id="sb-score-num" style="font-size:13px;color:var(--success)">0</div>
+        </div>
+        <div>
+          <div id="sb-score-level" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--success)">baixo</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">risco identificado</div>
+        </div>
+      </div>
+    </div>
+    <div class="sb-steps" id="sb-steps"></div>
+    <div class="sb-footer">
+      <div class="sb-footer-txt">CNPJ 56.222.931/0001-99<br>São Paulo / SP · 2026</div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="progress-bar"><div id="progress-fill" style="width:0%"></div></div>
+    <div id="header" style="display:none">
+      <div>
+        <div class="hdr-step" id="hdr-step"></div>
+        <div class="hdr-title" id="hdr-title"></div>
+      </div>
+      <div class="hdr-badge">IRPF · EX 2025 · BASE 2026</div>
+    </div>
+    <div id="content"></div>
+    <div id="footer" style="display:none">
+      <button class="btn-secondary" id="btn-back" onclick="nav(-1)">← Voltar</button>
+      <div class="save-ind">Salvo automaticamente</div>
+      <button class="btn-primary" id="btn-next" onclick="nav(1)">Continuar →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+const STEPS = [
+  {id:'welcome',   label:'Boas-vindas',      short:'Intro'},
+  {id:'pessoal',   label:'Identificação',    short:'Dados Pessoais'},
+  {id:'mei',       label:'MEI / CNPJ',       short:'Pessoa Jurídica'},
+  {id:'renda',     label:'Rendimentos',      short:'Mapeamento'},
+  {id:'bancario',  label:'Bancário',         short:'Reconciliação'},
+  {id:'despesas',  label:'Despesas',         short:'Deduções'},
+  {id:'patrimonio',label:'Patrimônio',       short:'Bens & Dedução'},
+  {id:'docs',      label:'Documentação',     short:'Documentos'},
+  {id:'resultado', label:'Diagnóstico',      short:'Resultado'},
+];
+
+let cur = 0;
+const d = {};
+
+function save() {
+  try { localStorage.setItem('bvianna_ir26', JSON.stringify({cur, d})); } catch(e){}
+}
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem('bvianna_ir26')||'{}');
+    if (s.d) Object.assign(d, s.d);
+    if (s.cur) cur = s.cur;
+  } catch(e){}
+}
+
+function calcScore() {
+  let s = 0;
+  if (d.informal==='sim') s+=25;
+  if (d.exterior==='sim') s+=22;
+  if ((parseFloat(d.receita_mei)||0)>81000) s+=18;
+  if (d.bens==='sim') s+=12;
+  if (d.vendeu_bens==='sim') s+=10;
+  if (d.das==='nao') s+=8;
+  if (d.dasn==='nao'||d.dasn==='nao_sei') s+=5;
+  return Math.min(s,100);
+}
+
+function scoreStyle(s) {
+  if (s<30) return {color:'var(--success)',label:'Baixo'};
+  if (s<60) return {color:'var(--warn)',label:'Moderado'};
+  return {color:'var(--danger)',label:'Elevado'};
+}
+
+function getFlags() {
+  const f=[];
+  if (d.informal==='sim') f.push({cls:'chip-warn',txt:'Renda informal'});
+  if (d.exterior==='sim') f.push({cls:'chip-warn',txt:'Renda exterior'});
+  if ((parseFloat(d.receita_mei)||0)>81000) f.push({cls:'chip-danger',txt:'MEI acima do limite'});
+  if (d.bens==='sim'||d.vendeu_bens==='sim') f.push({cls:'chip-warn',txt:'Movimentação patrimonial'});
+  if (d.das==='nao') f.push({cls:'chip-danger',txt:'DAS não pago'});
+  if (d.dasn==='nao'||d.dasn==='nao_sei') f.push({cls:'chip-warn',txt:'DASN pendente'});
+  if (!f.length) f.push({cls:'chip-ok',txt:'Perfil de baixo risco'});
+  return f;
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function v(id) { const el=document.getElementById(id); return el?el.value:''; }
+function bind(id, key) {
+  const el=document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', e=>{ d[key]=e.target.value; updateScore(); save(); });
+}
+function tog(key, val, label, sub='') {
+  return `<div class="toggle-opt${d[key]===val?' active':''}" onclick="setTog('${key}','${val}');render()">
+    <div class="toggle-dot"></div>
+    <div>
+      <div class="toggle-main">${label}</div>
+      ${sub?`<div class="toggle-sub">${sub}</div>`:''}
+    </div>
+  </div>`;
+}
+function field(label, required, html) {
+  return `<div class="field"><label>${label}${required?'<span class="req">*</span>':''}</label>${html}</div>`;
+}
+function inp(id, placeholder, type='text') {
+  return `<input id="${id}" type="${type}" placeholder="${placeholder}" value="${d[id]||''}">`;
+}
+function ta(id, placeholder) {
+  return `<textarea id="${id}" placeholder="${placeholder}">${d[id]||''}</textarea>`;
+}
+function card(title, body) {
+  return `<div class="card"><div class="card-title">${title}</div>${body}</div>`;
+}
+function alert_(type, txt) {
+  return `<div class="alert alert-${type}"><span>⬡</span> ${txt}</div>`;
+}
+function upload(id, label, sub) {
+  const up = d[id]==='sim';
+  return `<div class="upload-zone${up?' uploaded':''}" onclick="setTog('${id}','sim');render()">
+    <div class="uz-icon">${up?'✓':'↑'}</div>
+    <div class="uz-label">${label}</div>
+    ${sub?`<div class="uz-sub">${sub}</div>`:''}
+    ${up?`<div class="uz-badge">CONFIRMADO</div>`:'<div class="uz-sub" style="margin-top:6px">Clique para confirmar disponibilidade</div>'}
+  </div>`;
+}
+
+// ─── RENDER STEPS ─────────────────────────────────────────────────────────────
+function renderStep() {
+  const id = STEPS[cur].id;
+
+  if (id==='welcome') return `
+    <div style="max-width:580px">
+      <div style="background:linear-gradient(135deg,#1d3d7a44,var(--surfaceHi));border:1px solid var(--borderHi);border-radius:16px;padding:38px;margin-bottom:24px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;border:1px solid #1d3d7a33;pointer-events:none"></div>
+        <div class="welcome-badge">◈ Exercício Fiscal 2025 · IRPF 2026</div>
+        <h1 style="font-family:'DM Serif Display',serif;font-size:30px;line-height:1.25;color:var(--text);margin-bottom:14px">
+          Diagnóstico Tributário<br><em style="color:var(--accent)">Pré-Declaração</em>
+        </h1>
+        <p style="font-size:14px;color:var(--muted);line-height:1.75;margin-bottom:20px">
+          Coleta técnica estruturada para elaboração <strong style="color:var(--text)">segura, econômica e fiscalmente consistente</strong> da sua Declaração de IRPF 2026.
+        </p>
+        <div class="welcome-grid">
+          ${[
+            ['Pré-Auditoria Técnica','Identificação antecipada de inconsistências'],
+            ['Minimização de Risco','Adequação ao cruzamento da Receita Federal'],
+            ['Aproveitamento Máximo','Todas as deduções legais mapeadas'],
+            ['Sigilo Total','Dados protegidos conforme LGPD'],
+          ].map(([t,s])=>`<div class="welcome-feat"><div class="welcome-feat-title">${t}</div><div class="welcome-feat-sub">${s}</div></div>`).join('')}
+        </div>
+        ${alert_('warn','<strong>Importante:</strong> Este diagnóstico <strong>não constitui a declaração final</strong>. As informações serão auditadas pela equipe BVianna Consulting antes da transmissão via GOV.BR.')}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 17px;display:flex;gap:12px;align-items:flex-start;margin-bottom:24px">
+        <span style="color:var(--accent);font-size:14px;flex-shrink:0">ℹ</span>
+        <p style="font-size:12px;color:var(--muted)">Tempo estimado: <strong style="color:var(--text)">12–20 minutos</strong>. Suas respostas são salvas automaticamente.</p>
+      </div>
+      <button class="btn-primary" style="width:100%;padding:15px" onclick="nav(1)">Iniciar Diagnóstico Fiscal →</button>
+    </div>`;
+
+  if (id==='pessoal') return `
+    ${card('Dados pessoais',`
+      <div class="field-row">
+        ${field('Nome completo',true,inp('nome','Conforme CPF'))}
+        ${field('CPF',true,inp('cpf','000.000.000-00'))}
+      </div>
+      <div class="field-row">
+        ${field('WhatsApp',true,inp('wa','(11) 99999-9999'))}
+        ${field('E-mail',true,inp('email','seu@email.com'))}
+      </div>
+      <div class="field-row">
+        ${field('Data de nascimento','',inp('nasc','DD/MM/AAAA'))}
+        ${field('Município / UF','',inp('cidade','São Paulo / SP'))}
+      </div>
+    `)}
+    ${card('Dependentes',`
+      <div class="toggle-group">
+        ${tog('dep','sim','Sim, tenho dependentes a declarar','Filhos, cônjuge, pais ou outros dependentes legais')}
+        ${tog('dep','nao','Não — somente eu na declaração','')}
+      </div>
+      ${d.dep==='sim'?`<div class="cond">${field('Nome, CPF e grau de parentesco de cada dependente',false,ta('dep_det','Ex: João Silva, 123.456.789-00, filho — Maria Silva, 987.654.321-00, cônjuge'))}</div>`:''}
+    `)}
+    ${card('IR anterior',`
+      <div class="toggle-group">
+        ${tog('ir_ant','sim','Sim, já declarei IR antes','')}
+        ${tog('ir_ant','nao','Não — é minha primeira declaração','')}
+        ${tog('ir_ant','nao_sei','Não sei ao certo','')}
+      </div>
+    `)}`;
+
+  if (id==='mei') return `
+    ${alert_('info','Preencha mesmo que o MEI esteja em nome artístico — o que importa é o CNPJ ativo em 2025.')}
+    ${card('Dados do MEI',`
+      <div class="field-row">
+        ${field('CNPJ',true,inp('cnpj','00.000.000/0001-00'))}
+        ${field('Nome empresarial','',inp('razao','Nome no cartão do MEI'))}
+      </div>
+      <div class="field-row">
+        ${field('Atividade principal (CNAE)','',inp('cnae','Ex: músico, produtor musical...'))}
+        ${field('Receita bruta total MEI em 2025 (R$)',true,inp('receita_mei','0','number'))}
+      </div>
+      ${(parseFloat(d.receita_mei)||0)>81000?alert_('danger','Receita declarada ultrapassa o limite MEI de R$ 81.000. Necessário verificar desenquadramento.'):''}
+    `)}
+    ${card('Notas fiscais',`
+      <div class="toggle-group">
+        ${tog('emitiu_nf','sim','Sim, emiti notas fiscais','')}
+        ${tog('emitiu_nf','parcial','Emiti algumas — nem sempre','')}
+        ${tog('emitiu_nf','nao','Não emiti notas','')}
+      </div>
+      ${d.emitiu_nf&&d.emitiu_nf!=='nao'?`<div class="cond"><div class="field-row">
+        ${field('Total notas emitidas (R$)','',inp('nf_total','0','number'))}
+        ${field('Quantidade de notas','',inp('nf_qtd','0','number'))}
+      </div></div>`:''}
+    `)}
+    ${card('DAS e DASN',`
+      ${field('Pagou o DAS (guia mensal do MEI)?',false,`<div class="toggle-group" style="margin-top:8px">
+        ${tog('das','todos','Sim, paguei todos os 12 meses','')}
+        ${tog('das','parcial','Paguei alguns meses','')}
+        ${tog('das','nao','Não paguei','')}
+      </div>
+      ${d.das==='parcial'?`<div class="cond">${field('Quais meses foram pagos?','',inp('das_meses','Ex: jan, fev, mar, ago...'))}</div>`:''}`)}
+      ${field('Declarou o DASN-SIMEI?',false,`<div class="toggle-group" style="margin-top:8px">
+        ${tog('dasn','sim','Sim, declarei','')}
+        ${tog('dasn','nao','Não declarei','')}
+        ${tog('dasn','nao_sei','Não sei','')}
+      </div>`)}
+    `)}`;
+
+  if (id==='renda') return `
+    ${card('Fontes de renda 2025',`
+      ${field('Descreva todas as suas fontes de renda em 2025',true,ta('fontes','Ex: cachês em shows, aulas de violão, produção musical por contrato, streaming, composições licenciadas, consultoria...'))}
+      ${field('Estimativa da renda bruta total em 2025 (R$)',false,inp('renda_total','0','number'))}
+    `)}
+    ${card('Renda informal',`
+      ${alert_('info','Situação muito comum para músicos — sem problema. Vamos enquadrar corretamente como "trabalho autônomo sem retenção".')}
+      <div class="toggle-group">
+        ${tog('informal','sim','Sim, recebi cachês e pagamentos sem nota fiscal','')}
+        ${tog('informal','nao','Não — tudo formalizado pelo MEI ou com recibo','')}
+      </div>
+      ${d.informal==='sim'?`<div class="cond">
+        ${alert_('warn','Rendas informais precisam ser declaradas. Nossa equipe orienta o enquadramento correto.')}
+        ${field('Estimativa dos valores informais recebidos (R$)','',inp('informal_valor','0','number'))}
+        ${field('Como costumava receber?','',ta('informal_como','Ex: PIX de contratantes de shows, dinheiro no evento, transferência sem contrato...'))}
+      </div>`:''}
+    `)}
+    ${card('Renda do exterior',`
+      <div class="toggle-group">
+        ${tog('exterior','sim','Sim — streaming, Patreon, YouTube, contratos internacionais...','')}
+        ${tog('exterior','nao','Não','')}
+      </div>
+      ${d.exterior==='sim'?`<div class="cond">
+        ${alert_('warn','Renda exterior tem tratamento fiscal específico. Pode exigir CBE (Capitais Brasileiros no Exterior) se saldo > US$ 1.000.')}
+        <div class="field-row">
+          ${field('Plataforma / origem','',inp('ext_origem','Ex: DistroKid, Spotify, YouTube, Patreon...'))}
+          ${field('Valor estimado (R$)','',inp('ext_valor','0','number'))}
+        </div>
+      </div>`:''}
+    `)}
+    ${card('Emprego CLT paralelo',`
+      <div class="toggle-group">
+        ${tog('clt','sim','Sim, trabalhei com carteira assinada em 2025','')}
+        ${tog('clt','nao','Não — só autônomo / MEI','')}
+      </div>
+      ${d.clt==='sim'?`<div class="cond">${field('Empresa e valor bruto anual (R$)','',inp('clt_empresa','Ex: Escola Musical ABC — R$ 36.000 no ano'))}</div>`:''}
+    `)}`;
+
+  if (id==='bancario') return `
+    ${alert_('info','A Receita Federal cruza dados bancários automaticamente. Declare todas as contas — inclusive com pouca movimentação.')}
+    ${card('Contas PF',`
+      ${field('Liste todas as contas pessoa física',true,ta('contas_pf','Ex: Nubank CC / Itaú CC ag. 0001 / C6 Bank / Inter investimentos...'))}
+    `)}
+    ${card('Contas PJ',`
+      ${field('Contas empresariais vinculadas ao CNPJ',false,ta('contas_pj','Ex: Inter Empresas / Sicoob / Bradesco Empresas...'))}
+    `)}
+    ${card('Entradas não-renda',`
+      <div class="toggle-group">
+        ${tog('entrada_nrenda','sim','Sim — empréstimos, devolução, venda de bens, herança...','')}
+        ${tog('entrada_nrenda','nao','Não — todas as entradas são renda','')}
+      </div>
+      ${d.entrada_nrenda==='sim'?`<div class="cond">${field('Explique as entradas que não são renda','',ta('nrenda_desc','Ex: recebi R$ 15.000 de devolução de empréstimo a familiar em 2023...'))}</div>`:''}
+    `)}
+    ${card('Investimentos',`
+      <div class="toggle-group">
+        ${tog('invest','sim','Sim — CDB, Tesouro, fundos, ações, criptoativos...','')}
+        ${tog('invest','nao','Não tenho investimentos','')}
+      </div>
+      ${d.invest==='sim'?`<div class="cond">${field('Descreva os investimentos e saldo em 31/12/2025','',ta('invest_desc','Ex: R$ 10.000 Tesouro Selic / R$ 3.000 CDB Nubank / R$ 500 BTC Binance...'))}</div>`:''}
+    `)}`;
+
+  if (id==='despesas') return `
+    ${card('Saúde',`
+      <div class="toggle-group">
+        ${tog('saude','sim','Sim, tive gastos com saúde em 2025','')}
+        ${tog('saude','nao','Não tive gastos com saúde','')}
+      </div>
+      ${d.saude==='sim'?`<div class="cond">${field('Detalhe (médicos, plano, dentista, exames + valores)','',ta('saude_det','Ex: Plano Amil anual R$ 6.000 / Dentista R$ 1.200 / Consulta cardiologista R$ 350...'))}</div>`:''}
+    `)}
+    ${card('Educação',`
+      <div class="toggle-group">
+        ${tog('educacao','sim','Sim, paguei ensino regular (faculdade, pós-graduação...)','')}
+        ${tog('educacao','curso','Só cursos livres, workshops ou conservatório','')}
+        ${tog('educacao','nao','Não','')}
+      </div>
+      ${d.educacao==='sim'?`<div class="cond">${field('Instituição e valor anual (R$)','',inp('educ_det','Ex: Faculdade de Música XYZ — R$ 12.000 no ano'))}</div>`:''}
+      ${d.educacao==='curso'?`<div class="cond">${alert_('info','Cursos livres não são dedutíveis no IR pessoal, mas podem ser despesa do MEI. Anote mesmo assim.')}</div>`:''}
+    `)}
+    ${card('INSS',`
+      <div class="toggle-group">
+        ${tog('inss','sim','Sim, recolhi INSS como autônomo / contribuinte individual','')}
+        ${tog('inss','mei','Só o INSS incluso no DAS do MEI','')}
+        ${tog('inss','nao','Não recolhi INSS','')}
+      </div>
+      ${d.inss==='sim'?`<div class="cond">${field('Total pago de INSS em 2025 (R$)','',inp('inss_valor','0','number'))}</div>`:''}
+    `)}
+    ${card('Despesas profissionais — Músico',`
+      ${alert_('info','Instrumentos, equipamentos de home studio, assinaturas de DAW, transporte para shows e cursos são potencialmente dedutíveis pelo livro caixa ou MEI.')}
+      <div class="toggle-group">
+        ${tog('desp_prof','sim','Sim, tive gastos relacionados à atividade musical','')}
+        ${tog('desp_prof','nao','Não tive despesas profissionais relevantes','')}
+      </div>
+      ${d.desp_prof==='sim'?`<div class="cond">
+        ${field('Liste os gastos com atividade musical (com valores)','',ta('desp_prof_det','Ex: Interface de áudio R$ 1.800 / Assinatura Splice R$ 600 / Mesa de som R$ 3.500 / Cordas e palhetas R$ 400 / Gasolina shows R$ 1.200...'))}
+        ${field('Total estimado (R$)','',inp('desp_prof_total','0','number'))}
+      </div>`:''}
+    `)}`;
+
+  if (id==='patrimonio') return `
+    ${alert_('info','Todo bem com valor > R$ 300 deve ser declarado. Isso inclui instrumentos caros, equipamentos e veículos.')}
+    ${card('Bens adquiridos',`
+      <div class="toggle-group">
+        ${tog('bens','sim','Sim — imóvel, veículo, equipamentos de alto valor...','')}
+        ${tog('bens','nao','Não — nada relevante','')}
+      </div>
+      ${d.bens==='sim'?`<div class="cond">${field('Descreva os bens e valor de aquisição (R$)','',ta('bens_det','Ex: Guitarra PRS SE — R$ 6.500 / MacBook — R$ 14.000 / Carro Onix 2022 financiado — R$ 65.000...'))}</div>`:''}
+    `)}
+    ${card('Bens vendidos',`
+      <div class="toggle-group">
+        ${tog('vendeu_bens','sim','Sim, vendi bens em 2025','')}
+        ${tog('vendeu_bens','nao','Não','')}
+      </div>
+      ${d.vendeu_bens==='sim'?`<div class="cond">
+        ${alert_('warn','Vendas com lucro podem gerar Ganho de Capital tributável. Nossa equipe verifica.')}
+        ${field('O que vendeu, por quanto e quando comprou?','',ta('venda_det','Ex: Violão Yamaha (comprado R$ 1.800 em 2020) vendido por R$ 2.500 em março/2025...'))}
+      </div>`:''}
+    `)}
+    ${card('Previdência privada',`
+      <div class="toggle-group">
+        ${tog('prev_privada','pgbl','PGBL — dedutível até 12% da renda bruta','')}
+        ${tog('prev_privada','vgbl','VGBL — não dedutível, mas declara como bem','')}
+        ${tog('prev_privada','nao','Não tenho previdência privada','')}
+      </div>
+      ${d.prev_privada==='pgbl'?`<div class="cond">${field('Total contribuído ao PGBL em 2025 (R$)','',inp('pgbl_valor','0','number'))}</div>`:''}
+    `)}
+    ${card('Pensão alimentícia',`
+      <div class="toggle-group">
+        ${tog('pensao','sim','Sim, pago pensão alimentícia judicial','')}
+        ${tog('pensao','nao','Não','')}
+      </div>
+      ${d.pensao==='sim'?`<div class="cond">${field('Valor mensal pago (R$)','',inp('pensao_valor','0','number'))}</div>`:''}
+    `)}`;
+
+  if (id==='docs') {
+    const docs=[
+      ['doc_ir_ant','Declaração IR anterior (exercício 2024)','Arquivo .DEC ou PDF'],
+      ['doc_cpf','CPF / RG / CNH','Documento de identidade com foto'],
+      ['doc_extrato','Extratos bancários PF — jan a dez 2025','Todos os bancos em PDF ou CSV'],
+      ['doc_das','Comprovantes de pagamento do DAS','Todos os meses em 2025'],
+      ['doc_nf','Notas fiscais emitidas pelo MEI','PDF ou ZIP do portal do empreendedor'],
+      ['doc_dasn','DASN-SIMEI — declaração anual do MEI','Portal do empreendedor'],
+      ['doc_saude','Recibos e notas de saúde','Médicos, plano, dentista, exames'],
+      ['doc_desp','Comprovantes de despesas profissionais','Notas, recibos, extratos de compra'],
+    ];
+    const confirmed=docs.filter(([id])=>d[id]==='sim').length;
+    return `
+      ${alert_('info','Confirme os documentos que você <strong>já tem em mãos ou consegue obter facilmente</strong>. Não se preocupe com os que faltam — vamos orientar como conseguir cada um.')}
+      ${card(`Documentos — ${confirmed} de ${docs.length} confirmados`,`
+        <div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:20px">
+          <div style="height:100%;background:var(--accent);border-radius:2px;width:${Math.round(confirmed/docs.length*100)}%;transition:width .4s"></div>
+        </div>
+        <div class="upload-grid">
+          ${docs.map(([id,label,sub])=>upload(id,label,sub)).join('')}
+        </div>
+      `)}`;
+  }
+
+  if (id==='resultado') {
+    const score=calcScore();
+    const {color,label}=scoreStyle(score);
+    const flags=getFlags();
+    const circ=2*Math.PI*54;
+    const offset=circ-(score/100)*circ;
+    const docDocs=['doc_ir_ant','doc_cpf','doc_extrato','doc_das','doc_nf','doc_dasn'];
+    const docCount=docDocs.filter(k=>d[k]==='sim').length;
+    return `
+      <div style="background:linear-gradient(135deg,var(--surfaceHi),var(--bg));border:1px solid ${color}44;border-radius:16px;padding:38px;text-align:center;margin-bottom:22px">
+        <div style="position:relative;width:130px;height:130px;margin:0 auto 22px">
+          <svg width="130" height="130" style="transform:rotate(-90deg)">
+            <circle cx="65" cy="65" r="54" fill="none" stroke="var(--border)" stroke-width="6"/>
+            <circle cx="65" cy="65" r="54" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;color:${color};line-height:1">${score}</div>
+            <div style="font-size:10px;color:var(--muted);letter-spacing:.08em">/100</div>
+          </div>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:${color}22;border:1px solid ${color}55;border-radius:20px;padding:5px 16px;margin-bottom:14px">
+          <div style="width:7px;height:7px;border-radius:50%;background:${color}"></div>
+          <span style="font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:${color}">RISCO ${label.toUpperCase()}</span>
+        </div>
+        <h2 style="font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);margin-bottom:8px">
+          ${score<30?'Perfil Fiscal Consistente':score<60?'Pontos de Atenção Identificados':'Revisão Técnica Prioritária'}
+        </h2>
+        <p style="font-size:13px;color:var(--muted);max-width:440px;margin:0 auto">
+          ${score<30?'Seu perfil apresenta baixa complexidade. A equipe BVianna Consulting realizará a revisão final antes da transmissão.':score<60?'Foram identificados pontos que requerem atenção especializada. Nossa equipe entrará em contato para orientações adicionais.':'Seu perfil demanda análise cuidadosa antes da transmissão. Você receberá prioridade no atendimento.'}
+        </p>
+      </div>
+
+      ${card('Fatores de risco identificados',`<div>${flags.map(f=>`<span class="chip ${f.cls}">${f.txt}</span>`).join('')}</div>`)}
+
+      ${card('Documentação',`
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px">${docCount} de 6 documentos principais confirmados</div>
+        <div style="height:5px;background:var(--border);border-radius:3px">
+          <div style="height:100%;background:var(--accent);border-radius:3px;width:${Math.round(docCount/6*100)}%"></div>
+        </div>
+      `)}
+
+      ${card('Resumo do perfil',`
+        ${[
+          ['Nome',d.nome||'—'],
+          ['CPF',d.cpf||'—'],
+          ['WhatsApp',d.wa||'—'],
+          ['CNPJ MEI',d.cnpj||'—'],
+          ['Receita MEI',d.receita_mei?'R$ '+Number(d.receita_mei).toLocaleString('pt-BR'):'—'],
+          ['Renda total est.',d.renda_total?'R$ '+Number(d.renda_total).toLocaleString('pt-BR'):'—'],
+          ['Renda informal',d.informal==='sim'?'Declarada':'Não declarada'],
+          ['Renda exterior',d.exterior==='sim'?'Declarada':'Não declarada'],
+          ['Dependentes',d.dep==='sim'?'Sim':'Não'],
+          ['Movimentação patrimonial',d.bens==='sim'||d.vendeu_bens==='sim'?'Identificada':'Não identificada'],
+        ].map(([k,v])=>`<div class="result-item"><div class="result-dot" style="background:var(--dim)"></div><div class="result-key">${k}</div><div class="result-val">${v}</div></div>`).join('')}
+      `)}
+
+      <div style="background:#1d3d7a33;border:1px solid var(--accentDim);border-radius:14px;padding:26px;margin-bottom:20px">
+        <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:600">Próximos Passos</div>
+        ${['Diagnóstico registrado com sucesso pela BVianna Consulting','Pré-auditoria técnica realizada em até 48h úteis','Contato via WhatsApp para alinhamento final','Transmissão via GOV.BR após aprovação da equipe técnica'].map((s,i)=>`
+          <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:${i<3?'12px':'0'}">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff">${i+1}</div>
+            <span style="font-size:13px;color:var(--muted);padding-top:3px">${s}</span>
+          </div>`).join('')}
+      </div>
+      <button class="btn-gold" style="width:100%;padding:14px" onclick="finalSubmit()">✓ Confirmar Envio — BVianna Consulting</button>
+    `;
+  }
+  return '';
+}
+
+// ─── GLOBAL ACTIONS ───────────────────────────────────────────────────────────
+window.setTog = function(key, val) {
+  // collect current inputs first
+  collectInputs();
+  d[key] = val;
+  updateScore();
+  save();
+  render();
+};
+
+function collectInputs() {
+  document.querySelectorAll('input,textarea').forEach(el=>{
+    if (el.id) d[el.id] = el.value;
+  });
+}
+
+window.nav = function(dir) {
+  collectInputs();
+  save();
+  cur = Math.max(0, Math.min(STEPS.length-1, cur+dir));
+  save();
+  render();
+  window.scrollTo({top:0,behavior:'smooth'});
+};
+
+window.finalSubmit = function() {
+  collectInputs();
+  save();
+  alert('Diagnóstico enviado com sucesso!\n\nA equipe BVianna Consulting entrará em contato via WhatsApp em até 48h úteis.\n\nObrigado pela confiança!');
+};
+
+// ─── SCORE SIDEBAR ────────────────────────────────────────────────────────────
+function updateScore() {
+  const s=calcScore();
+  const {color,label}=scoreStyle(s);
+  const el=document.getElementById('sb-ring');
+  const num=document.getElementById('sb-score-num');
+  const lev=document.getElementById('sb-score-level');
+  const wrap=document.getElementById('sb-score-wrap');
+  if (!el) return;
+  const circ=2*Math.PI*22;
+  el.setAttribute('stroke-dashoffset',(circ-(s/100)*circ).toFixed(1));
+  el.setAttribute('stroke',color);
+  if (num){num.textContent=s;num.style.color=color;}
+  if (lev){lev.textContent=label;lev.style.color=color;}
+  if (wrap) wrap.style.display=cur>0?'block':'none';
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const el=document.getElementById('sb-steps');
+  el.innerHTML=STEPS.map((s,i)=>`
+    <div class="sb-step${i===cur?' active':i<cur?' done':''}">
+      <div class="sb-step-num">${i<cur?'✓':i+1}</div>
+      <div class="sb-step-label">${s.label}</div>
+    </div>`).join('');
+  updateScore();
+}
+
+// ─── MAIN RENDER ──────────────────────────────────────────────────────────────
+function render() {
+  const pct=Math.round((cur/(STEPS.length-1))*100);
+  document.getElementById('progress-fill').style.width=pct+'%';
+
+  const isWelcome=STEPS[cur].id==='welcome';
+  const isResult=STEPS[cur].id==='resultado';
+  document.getElementById('header').style.display=isWelcome?'none':'flex';
+  document.getElementById('footer').style.display=isWelcome?'none':'flex';
+
+  if (!isWelcome) {
+    document.getElementById('hdr-step').textContent=`Etapa ${cur+1} de ${STEPS.length} · ${STEPS[cur].short}`;
+    document.getElementById('hdr-title').textContent=STEPS[cur].label;
+    document.getElementById('btn-back').style.display=cur>0?'block':'none';
+    const btnNext=document.getElementById('btn-next');
+    if (btnNext) {
+      btnNext.style.display=isResult?'none':'block';
+      btnNext.textContent=cur===STEPS.length-2?'Ver Diagnóstico →':'Continuar →';
+    }
+  }
+
+  document.getElementById('content').innerHTML=renderStep();
+  renderSidebar();
+
+  // bind inputs
+  document.querySelectorAll('input,textarea').forEach(el=>{
+    if (!el.id) return;
+    el.addEventListener('input', e=>{
+      d[el.id]=e.target.value;
+      if (el.id==='receita_mei') render();
+      updateScore();
+      save();
+    });
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+load();
+render();
+</script>
+</body>
 </html>
